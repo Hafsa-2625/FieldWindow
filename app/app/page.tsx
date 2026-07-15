@@ -6,17 +6,14 @@ import LocationBar, { type Coords } from "@/components/LocationBar";
 import HeadlineCard from "@/components/HeadlineCard";
 import SprayTimeline from "@/components/SprayTimeline";
 import HarvestOutlook from "@/components/HarvestOutlook";
-import QuotaPanel from "@/components/QuotaPanel";
 import type { GeoWeather } from "@/app/api/weather-geo/route";
 import {
   classifySprayHours,
   normalizeDays,
   normalizeHours,
-  normalizeUsage,
   upcomingHours,
   type DayPoint,
   type SprayHour,
-  type UsageSummary,
 } from "@/lib/fieldwindow";
 
 function currentWind(current: Record<string, any> | undefined): number | undefined {
@@ -32,14 +29,12 @@ const SECTIONS = [
   { id: "now", label: "Right now", hint: "Conditions" },
   { id: "spray", label: "Spray", hint: "Hour windows" },
   { id: "harvest", label: "Harvest", hint: "Dry days" },
-  { id: "quota", label: "Quota", hint: "API usage" },
 ] as const;
 
 export default function PlannerDashboard() {
   const [geo, setGeo] = useState<GeoWeather | null>(null);
   const [hours, setHours] = useState<SprayHour[]>([]);
   const [days, setDays] = useState<DayPoint[]>([]);
-  const [usage, setUsage] = useState<UsageSummary | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -99,12 +94,6 @@ export default function PlannerDashboard() {
         }
       }
 
-      try {
-        const usageRes = await fetch("/api/usage");
-        if (usageRes.ok) setUsage(normalizeUsage(await usageRes.json()));
-      } catch {
-        /* ignore */
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -219,20 +208,9 @@ export default function PlannerDashboard() {
 
           {geo && (
             <div className="space-y-6">
-              {/* Top pair: conditions + quota use the width */}
-              <div className="grid gap-6 lg:grid-cols-5">
-                <section id="now" className="scroll-mt-24 lg:col-span-3">
-                  <HeadlineCard current={geo.current} aiSummary={geo.ai_summary} />
-                </section>
-                <section id="quota" className="scroll-mt-24 lg:col-span-2">
-                  <QuotaPanel usage={usage} />
-                  {!usage && (
-                    <div className="flex h-full items-center rounded-2xl border border-dashed border-ink/15 bg-white/40 px-5 py-6 text-sm text-ink/45">
-                      Quota will appear once usage loads…
-                    </div>
-                  )}
-                </section>
-              </div>
+              <section id="now" className="scroll-mt-24">
+                <HeadlineCard current={geo.current} aiSummary={geo.ai_summary} />
+              </section>
 
               <section id="spray" className="scroll-mt-24">
                 <SprayTimeline
@@ -248,9 +226,8 @@ export default function PlannerDashboard() {
           )}
 
           <footer className="mt-14 border-t border-dashed border-ink/15 pt-6 text-xs text-ink/40">
-            WeatherAI free tier · <code>/v1/weather-geo</code> ·{" "}
-            <code>/v1/hourly</code> · <code>/v1/daily</code> ·{" "}
-            <code>/v1/usage</code>
+            WeatherAI · <code>/v1/weather-geo</code> · <code>/v1/hourly</code> ·{" "}
+            <code>/v1/daily</code>
           </footer>
         </main>
       </div>
